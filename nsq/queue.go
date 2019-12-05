@@ -317,6 +317,9 @@ func (q *Queue) Publish(ctx context.Context, topic string, body []byte) error {
 
 	err = q.producer.Publish(topic, msg)
 	if err != nil {
+		if xerrors.Is(err, nsq.ErrNotConnected) || xerrors.Is(err, nsq.ErrStopped) || xerrors.Is(err, nsq.ErrClosing) {
+			return &queues.ConnectedError{Cause: xerrors.Errorf("error at publish topic '%s': %w", topic, err)}
+		}
 		return xerrors.Errorf("error at publish topic '%s': %w", topic, err)
 	}
 

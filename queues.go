@@ -6,6 +6,26 @@ import (
 	"time"
 )
 
+// ConnectedError typifies error "race condition".
+type ConnectedError struct {
+	// Cause - cause error.
+	Cause error
+}
+
+// Error returns an error message.
+func (ce *ConnectedError) Error() string {
+	if ce.Cause == nil {
+		return ""
+	}
+
+	return ce.Cause.Error()
+}
+
+// Unwrap satisfies the interface xerrors.Wrapper.
+func (ce *ConnectedError) Unwrap() error {
+	return ce.Cause
+}
+
 // Message predetermines the message type for handler.
 type Message interface {
 	// Body - provides the message body.
