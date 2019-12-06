@@ -3,27 +3,48 @@ package queues
 
 import (
 	"context"
+	"fmt"
+	"golang.org/x/xerrors"
 	"time"
 )
 
 // ConnectedError typifies error "race condition".
 type ConnectedError struct {
-	// Cause - cause error.
-	Cause error
+	cause error
+	frame xerrors.Frame
 }
 
 // Error returns an error message.
 func (ce *ConnectedError) Error() string {
-	if ce.Cause == nil {
+	if ce.cause == nil {
 		return ""
 	}
 
-	return ce.Cause.Error()
+	return ce.cause.Error()
 }
 
 // Unwrap satisfies the interface xerrors.Wrapper.
 func (ce *ConnectedError) Unwrap() error {
-	return ce.Cause
+	return ce.cause
+}
+
+// FormatError satisfies the interface xerrors.Formatter.
+func (ce *ConnectedError) FormatError(p xerrors.Printer) (next error) {
+	p.Print("init queue connection error")
+	ce.frame.Format(p)
+
+	return ce.Unwrap()
+}
+
+// Format satisfies the interface fmt.Formatter.
+func (ce *ConnectedError) Format(s fmt.State, v rune) { xerrors.FormatError(ce, s, v) }
+
+// NewConnectedError - constructor ConnectedError based on the cause of the error.
+func NewConnectedError(cause error) *ConnectedError {
+	return &ConnectedError{
+		cause: cause,
+		frame: xerrors.Caller(1),
+	}
 }
 
 // Message predetermines the message type for handler.
