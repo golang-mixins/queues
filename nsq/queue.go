@@ -379,18 +379,16 @@ func (q *Queue) Unsubscribe(ctx context.Context) {
 	q.wg.Wait()
 }
 
-func (q *Queue) stopProducer() {
-	defer q.wg.Done()
-
+func (q *Queue) stopProducer(timeout time.Duration) {
 	shutdown := make(chan struct{})
-	defer close(shutdown)
 
-	timer := time.NewTimer(q.stopTimeout)
+	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
 	go func() {
 		q.producer.Stop()
 		shutdown <- struct{}{}
+		close(shutdown)
 	}()
 
 	select {
@@ -410,8 +408,7 @@ func (q *Queue) Stop(ctx context.Context) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	q.wg.Add(1)
-	go q.stopProducer()
+	start := time.Now()
 
 	for _, s := range q.subscribers {
 		q.wg.Add(1)
@@ -420,10 +417,10 @@ func (q *Queue) Stop(ctx context.Context) {
 			defer q.wg.Done()
 			s.Stop(ctx)
 		}(s)
-
 	}
-
 	q.wg.Wait()
+
+	q.stopProducer(q.stopTimeout - time.Since(start))
 }
 
 // Ping - ping to producer,
