@@ -430,7 +430,7 @@ func (q *Queue) Ping(ctx context.Context) error {
 
 	err := q.producer.Ping()
 	if err != nil {
-		return xerrors.New(err.Error())
+		return queues.NewConnectedError(xerrors.Errorf("error by ping producer: %w", err))
 	}
 
 	return nil
