@@ -204,6 +204,8 @@ func (s *Subscription) Stop(ctx context.Context) {
 	timer := time.NewTimer(s.stopTimeout)
 	defer timer.Stop()
 
+	s.consumer.ChangeMaxInFlight(0)
+
 	s.consumer.Stop()
 	select {
 	case <-s.consumer.StopChan:
@@ -341,6 +343,8 @@ func (q *Queue) Subscribe(ctx context.Context, topic string, handler queues.Hand
 	}
 
 	consumer.AddConcurrentHandlers(q.convertHandler(handler, topic), q.config.MaxInFlight)
+	consumer.ChangeMaxInFlight(q.config.MaxInFlight)
+	
 	err = consumer.ConnectToNSQLookupds(q.addrs)
 	if err != nil {
 		return nil, xerrors.Errorf("error at connecting consumer NSQLookupds %+v: %w", q.addrs, err)
